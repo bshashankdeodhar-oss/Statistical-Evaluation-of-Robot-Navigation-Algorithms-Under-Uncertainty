@@ -1,0 +1,36 @@
+Package: RobotNavUncertainty
+Title: Statistical Evaluation of Robot Navigation Algorithms Under Uncertainty
+Version: 1.0.0
+Date: 2026-10-19
+Authors@R: person("Researcher", "Name", email="researcher@example.com", role=c("aut","cre"))
+Description: A simulation-based statistical research framework comparing
+    Dijkstra, A*, and Risk-Aware path planning under configurable environmental
+    uncertainty. Includes Monte Carlo experiments, hypothesis testing, and an
+    interactive Shiny dashboard.
+License: MIT
+Depends: R (>= 4.2.0)
+Imports:
+    shiny,
+    shinydashboard,
+    shinyWidgets,
+    shinycssloaders,
+    ggplot2,
+    dplyr,
+    tidyr,
+    igraph,
+    testthat,
+    DT,
+    plotly,
+    scales,
+    viridis,
+    gridExtra,
+    broom,
+    knitr,
+    rmarkdown,
+    htmltools,
+    jsonlite,
+    ggpubr,
+    effectsize,
+    base64enc
+Encoding: UTF-8
+RoxygenNote: 7.3.1
