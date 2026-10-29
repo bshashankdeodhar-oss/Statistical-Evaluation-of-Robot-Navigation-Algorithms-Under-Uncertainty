@@ -76,7 +76,7 @@ ui <- dashboardPage(
               sliderInput("grid_width",  "Grid width",  min=10, max=60, value=20, step=5),
               sliderInput("grid_height", "Grid height", min=10, max=60, value=20, step=5),
               sliderInput("obs_density", "Obstacle density",
-                          min=0.05, max=0.50, value=0.20, step=0.05,
+                          min=5, max=50, value=20, step=5,
                           post="%"),
               radioButtons("movement", "Movement mode",
                            choices=c("Four-directional"="four","Eight-directional"="eight"),
@@ -274,17 +274,44 @@ ui <- dashboardPage(
 # =============================================================================
 server <- function(input, output, session) {
 
+  # Pre-load latest results and default map for immediate interactivity
+  csv_files <- sort(list.files("results", pattern = "^experiment_results_.*\\.csv$", full.names = TRUE), decreasing = TRUE)
+  init_mc <- if (length(csv_files) > 0) {
+    tryCatch({
+      df <- read.csv(csv_files[1])
+      if (nrow(df) > 0) df else NULL
+    }, error = function(e) NULL)
+  } else NULL
+
+  init_summary <- if (!is.null(init_mc)) tryCatch(compute_summary_metrics(init_mc), error = function(e) NULL) else NULL
+  init_h1 <- if (!is.null(init_mc)) tryCatch(test_h1_planning_efficiency(init_mc), error = function(e) NULL) else NULL
+  init_h2 <- if (!is.null(init_mc)) tryCatch(test_h2_reliability(init_mc), error = function(e) NULL) else NULL
+  init_h3 <- if (!is.null(init_mc)) tryCatch(test_h3_risk_aversion(init_mc), error = function(e) NULL) else NULL
+  init_h4 <- if (!is.null(init_mc)) tryCatch(test_h4_interaction(init_mc), error = function(e) NULL) else NULL
+
+  init_grid <- tryCatch(create_grid(width = 20, height = 20, obs_density = 0.20, movement = "four", seed = 42), error = function(e) NULL)
+  init_plans <- list()
+  if (!is.null(init_grid) && isTRUE(init_grid$reachable)) {
+    unc_default <- create_uncertainty_config(uncertainty_level = 0.1, disruption_prob = 0.05, sensor_error_prob = 0.05)
+    for (alg in c("Dijkstra", "A*", "Risk-Aware")) {
+      init_plans[[alg]] <- tryCatch(
+        run_single_trial(init_grid, algorithm = alg, unc_config = unc_default, lambda_risk = 1.0, replanning = FALSE, env_seed = 43L, trial_id = 1L, map_id = 1L),
+        error = function(e) list(overall_success = FALSE, failure_reason = e$message)
+      )
+    }
+  }
+
   # Reactive state
   rv <- reactiveValues(
-    grid_obj    = NULL,
-    plan_results= list(),
-    mc_results  = NULL,
-    summary_df  = NULL,
-    stats_h1    = NULL,
-    stats_h2    = NULL,
-    stats_h3    = NULL,
-    stats_h4    = NULL,
-    status_msg  = "Ready. Click 'Generate Map' to begin.",
+    grid_obj    = init_grid,
+    plan_results= init_plans,
+    mc_results  = init_mc,
+    summary_df  = init_summary,
+    stats_h1    = init_h1,
+    stats_h2    = init_h2,
+    stats_h3    = init_h3,
+    stats_h4    = init_h4,
+    status_msg  = if (!is.null(init_mc)) sprintf("Initialized with benchmark dataset (%d trials). Ready.", nrow(init_mc)) else "Ready. Click 'Generate Map' to begin.",
     mc_running  = FALSE
   )
 

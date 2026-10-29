@@ -28,6 +28,15 @@ test_h1_planning_efficiency <- function(results_df) {
     filter(!is.na(Dijkstra), !is.na(`A*`))
 
   if (nrow(paired) < 5L) {
+    paired <- results_df %>%
+      filter(algorithm %in% c("Dijkstra", "A*"), planning_success) %>%
+      group_by(map_id, algorithm) %>%
+      summarise(planning_time = mean(planning_time, na.rm = TRUE), .groups = "drop") %>%
+      tidyr::pivot_wider(names_from = algorithm, values_from = planning_time) %>%
+      filter(!is.na(Dijkstra), !is.na(`A*`))
+  }
+
+  if (nrow(paired) < 5L) {
     return(list(
       test = "Wilcoxon signed-rank (paired)",
       hypothesis = "H1: No difference in planning runtime between Dijkstra and A*",

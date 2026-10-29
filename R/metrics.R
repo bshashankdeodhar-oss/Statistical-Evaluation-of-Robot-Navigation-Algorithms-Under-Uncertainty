@@ -74,15 +74,13 @@ compute_detour_metrics <- function(results_df) {
   library(dplyr)
   baseline <- results_df %>%
     filter(algorithm == "Dijkstra", overall_success) %>%
-    select(map_id, env_seed, obs_density, uncertainty_level,
-           disruption_prob, nominal_cost) %>%
-    rename(dijkstra_nominal = nominal_cost)
+    group_by(map_id, obs_density, uncertainty_level, disruption_prob) %>%
+    summarise(dijkstra_nominal = mean(nominal_cost, na.rm=TRUE), .groups="drop")
 
   results_df %>%
     filter(algorithm != "Dijkstra", overall_success) %>%
-    left_join(baseline, by = c("map_id", "env_seed",
-                               "obs_density", "uncertainty_level",
-                               "disruption_prob")) %>%
+    left_join(baseline, by = c("map_id", "obs_density",
+                               "uncertainty_level", "disruption_prob")) %>%
     mutate(
       detour_ratio = nominal_cost / dijkstra_nominal,
       detour_abs   = nominal_cost - dijkstra_nominal
